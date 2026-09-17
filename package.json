@@ -1,0 +1,58 @@
+{
+  "name": "salah-reminder",
+  "productName": "Salah Reminder",
+  "version": "1.3.0",
+  "description": "Salah Reminder",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node src/main/prayer-times.test.js && node src/main/scheduler.test.js && node src/main/cities.test.js",
+    "test:times": "node src/main/prayer-times.test.js",
+    "test:scheduler": "node src/main/scheduler.test.js",
+    "pack": "electron-builder --win --dir",
+    "dist": "electron-builder --win",
+    "selftest": "electron . --selftest",
+    "test:cities": "node src/main/cities.test.js"
+  },
+  "author": {
+    "name": "Riazul Islam",
+    "email": "riazulb9@gmail.com",
+    "url": "https://riazulb9.com"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.riazul.salahreminder",
+    "productName": "Salah Reminder",
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "SalahReminder-${version}-${arch}.${ext}",
+      "publisherName": "Riazul Islam"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Salah Reminder",
+      "artifactName": "SalahReminder-Setup-${version}.${ext}",
+      "uninstallDisplayName": "Salah Reminder"
+    },
+    "compression": "normal",
+    "copyright": "Copyright (c) 2026 Riazul Islam, riazulb9.com"
+  },
+  "homepage": "https://riazulb9.com"
+}

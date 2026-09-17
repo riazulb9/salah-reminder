@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+<title>Salah Reminder</title>
+<link rel="stylesheet" href="../shared/fonts.css">
+<style>
+  :root {
+    --line: rgba(255,255,255,0.14);
+    --sans: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+    --arabic: 'AmiriApp', 'Traditional Arabic', 'Arabic Typesetting', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: transparent; overflow: hidden; }
+  body {
+    font-family: var(--sans);
+    -webkit-user-select: none;
+    display: grid; place-items: center;
+    padding: 10px;
+  }
+
+  .card {
+    position: relative;
+    width: 100%; height: 100%;
+    border-radius: 22px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 26px 70px rgba(0,0,0,0.62), 0 2px 0 rgba(255,255,255,0.06) inset;
+    -webkit-app-region: drag;
+    opacity: 0; transform: scale(0.965) translateY(10px);
+    animation: rise 620ms cubic-bezier(.16,.84,.32,1) forwards;
+  }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  canvas, #photo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #photo {
+    object-fit: cover; object-position: center;
+    opacity: 0; transition: opacity 900ms ease;
+  }
+  #photo.on { opacity: 1; }
+
+  /* visual style: which layers are shown */
+  body.style-geometry #photo { display: none; }
+  body.style-photo    canvas#bg { display: none; }
+
+  .verse {
+    margin-top: 20px; width: 100%;
+    padding: 13px 14px 12px;
+    border-radius: 13px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(10,8,14,0.34);
+    backdrop-filter: blur(9px);
+    transition: opacity 700ms ease;
+  }
+  .verse.out { opacity: 0; }
+  .verse .v-ar {
+    font-family: var(--arabic); direction: rtl;
+    font-size: 23px; line-height: 1.95; color: var(--accent, #e8c26a);
+    text-shadow: 0 0 22px var(--glow);
+  }
+  .verse.quran .v-ar { font-family: var(--quran); font-size: 24px; line-height: 2.05; }
+  .verse .v-en {
+    font-size: 15px; line-height: 1.62; font-weight: 300;
+    color: rgba(255,255,255,0.88); margin-top: 10px;
+  }
+  .verse .v-ref {
+    font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
+    color: rgba(255,255,255,0.42); margin-top: 8px;
+  }
+
+  .veil {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 78% 46% at 50% 30%,
+        rgba(6,5,10,0.80) 0%, rgba(6,5,10,0.44) 52%, rgba(6,5,10,0) 80%),
+      linear-gradient(180deg,
+        rgba(6,5,10,0.62) 0%, rgba(6,5,10,0.30) 22%,
+        rgba(6,5,10,0.58) 52%, rgba(6,5,10,0.90) 100%);
+  }
+  .content > * { text-shadow: 0 1px 14px rgba(0,0,0,0.75); }
+
+  .content {
+    position: relative; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; text-align: center;
+    padding: 30px 28px 24px;
+    color: var(--text, #f6ece2);
+  }
+
+  .eyebrow {
+    font-size: 10.5px; letter-spacing: .24em; text-transform: uppercase;
+    color: var(--dim, rgba(255,255,255,.55)); margin-bottom: 26px;
+  }
+
+  .ar {
+    font-family: var(--arabic);
+    font-size: 50px; line-height: 1.24; font-weight: 400;
+    direction: rtl;
+    text-shadow: 0 0 34px var(--glow, rgba(255,200,140,.5)), 0 2px 18px rgba(0,0,0,.8);
+  }
+  .en {
+    font-size: 15px; letter-spacing: .34em; text-transform: uppercase;
+    margin-top: 6px; color: var(--dim, rgba(255,255,255,.62));
+  }
+  .at {
+    margin-top: 16px;
+    font-size: 13px; letter-spacing: .06em;
+    color: var(--dim, rgba(255,255,255,.55));
+  }
+  .at b { color: var(--accent, #e8c26a); font-weight: 600; letter-spacing: .02em; }
+
+  .countdown {
+    margin-top: 16px;
+    font-variant-numeric: tabular-nums;
+    font-size: 31px; font-weight: 200; letter-spacing: .02em;
+  }
+  .countdown small { display:block; font-size: 10.5px; letter-spacing:.22em;
+    text-transform: uppercase; color: var(--dim, rgba(255,255,255,.5)); margin-top: 8px; font-weight:400; }
+
+  .spacer { flex: 1 1 auto; min-height: 14px; }
+
+  .ask { font-size: 16px; font-weight: 300; margin-bottom: 16px; color: rgba(255,255,255,.9); }
+
+  .actions { width: 100%; display: flex; flex-direction: column; gap: 9px; -webkit-app-region: no-drag; }
+
+  button {
+    font-family: inherit; font-size: 14px;
+    width: 100%; padding: 14px 16px;
+    border-radius: 13px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.17);
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.94);
+    backdrop-filter: blur(14px);
+    transition: transform .14s ease, background .18s ease, border-color .18s ease;
+  }
+  button:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.3); transform: translateY(-1px); }
+  button:active { transform: translateY(0) scale(.99); }
+  button .sub { display:block; font-size: 11px; opacity:.62; margin-top: 3px; letter-spacing:.02em; }
+  button.primary .sub { opacity:.72; font-weight: 500; }
+
+  button.primary {
+    background: var(--accent, #e8c26a);
+    border-color: transparent;
+    color: #14100a; font-weight: 600;
+    box-shadow: 0 8px 26px var(--glow, rgba(232,194,106,.4));
+  }
+  button.primary:hover { filter: brightness(1.07); background: var(--accent, #e8c26a); }
+
+  .dots { display: flex; gap: 8px; margin-top: 20px; align-items: center; }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(255,255,255,.2); position: relative;
+  }
+  .dot.prayed { background: var(--accent, #e8c26a); box-shadow: 0 0 10px var(--glow); }
+  .dot.now { outline: 1px solid rgba(255,255,255,.6); outline-offset: 3px; }
+  .dot.missed { background: rgba(255,255,255,.09); }
+  .foot { margin-top: 11px; font-size: 10px; letter-spacing:.14em; text-transform: uppercase;
+          color: rgba(255,255,255,.34); }
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <img id="photo" alt="">
+    <canvas id="bg"></canvas>
+    <div class="veil"></div>
+    <div class="content">
+      <div class="eyebrow" id="eyebrow">Prayer reminder</div>
+      <div class="ar" id="ar">&nbsp;</div>
+      <div class="en" id="en"></div>
+      <div class="at" id="at"></div>
+      <div class="countdown" id="cd">&nbsp;<small id="cdlabel"></small></div>
+
+      <div class="verse" id="verse">
+        <div class="v-ar" id="var"></div>
+        <div class="v-en" id="ven"></div>
+        <div class="v-ref" id="vref"></div>
+      </div>
+
+      <div class="spacer"></div>
+
+      <div class="ask" id="ask">Have you prayed yet?</div>
+      <div class="actions">
+        <button class="primary" id="going">I am going to pray now
+          <span class="sub">Opens a quiet screen until the adhan</span></button>
+        <button id="yes">Alhamdulillah, I have prayed</button>
+        <button id="no">Not yet
+          <span class="sub" id="nosub">Ask me again in 10 minutes</span></button>
+      </div>
+
+      <div class="dots" id="dots"></div>
+      <div class="foot" id="foot"></div>
+    </div>
+  </div>
+
+<script src="../shared/palettes.js"></script>
+<script src="../shared/verses.js"></script>
+<script src="../shared/scenes.js"></script>
+<script src="prompt.js"></script>
+</body>
+</html>

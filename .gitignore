@@ -1,0 +1,11 @@
+node_modules/
+dist/
+npm-debug.log*
+*.log
+.DS_Store
+Thumbs.db
+
+# stray folders that ended up in the project root
+Claude/
+outputs/
+NVIDIA Corporation/

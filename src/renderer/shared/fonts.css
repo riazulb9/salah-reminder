@@ -1,0 +1,30 @@
+/* Bundled so the Arabic and the eight translation scripts render the same on
+   every machine, instead of depending on what the viewer happens to have
+   installed. Amiri is under the SIL Open Font License (assets/fonts/OFL.txt). */
+
+@font-face {
+  font-family: 'AmiriApp';
+  src: url('../../../assets/fonts/Amiri-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: block;
+}
+@font-face {
+  font-family: 'AmiriQuranApp';
+  src: url('../../../assets/fonts/AmiriQuran.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: block;
+}
+
+:root {
+  --arabic: 'AmiriApp', 'Traditional Arabic', 'Arabic Typesetting', serif;
+  --quran:  'AmiriQuranApp', 'AmiriApp', 'Traditional Arabic', serif;
+}
+
+/* Translation scripts. Windows ships Nirmala UI (Bengali, Devanagari) and
+   Microsoft YaHei (Chinese); Urdu falls back to Amiri, which reads cleanly. */
+.lang-en, .lang-es, .lang-fr, .lang-ru { font-family: var(--sans); }
+.lang-bn { font-family: 'Nirmala UI', 'Shonar Bangla', 'Noto Sans Bengali', sans-serif; }
+.lang-hi { font-family: 'Nirmala UI', 'Noto Sans Devanagari', sans-serif; }
+.lang-zh { font-family: 'Microsoft YaHei', 'Noto Sans SC', sans-serif; }
+.lang-ur {
+  font-family: 'Noto Nastaliq Urdu', 'Urdu Typesetting', 'AmiriApp', serif;
+  direction: rtl; line-height: 2.1;
+}

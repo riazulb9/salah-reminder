@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+<title>Salah</title>
+<link rel="stylesheet" href="../shared/fonts.css">
+<style>
+  :root {
+    --sans: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+    --arabic: 'AmiriApp', 'Traditional Arabic', 'Arabic Typesetting', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: #000; }
+  body { font-family: var(--sans); -webkit-user-select: none; cursor: none; }
+  body.showcursor { cursor: default; }
+
+  canvas, #photo { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #photo {
+    object-fit: cover; object-position: center;
+    filter: blur(3px) saturate(1.06) brightness(0.82);
+    transform: scale(1.06);
+    opacity: 0; transition: opacity 1600ms ease;
+  }
+  #photo.on { opacity: 1; }
+  body.style-geometry #photo { display: none; }
+  body.style-photo    canvas#bg { display: none; }
+
+  .veil { position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 40% 64% at 50% 50%, rgba(3,3,7,.86) 0%, rgba(3,3,7,.55) 50%, rgba(3,3,7,0) 84%),
+      radial-gradient(ellipse at 50% 46%, rgba(0,0,0,0) 34%, rgba(0,0,0,.58) 100%); }
+  .stage > * { text-shadow: 0 2px 22px rgba(0,0,0,.72); }
+
+  .stage {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; color: var(--text, #f2ece2);
+    opacity: 0; animation: fadein 1600ms ease 200ms forwards;
+  }
+  @keyframes fadein { to { opacity: 1; } }
+
+  .name-ar {
+    font-family: var(--arabic); font-size: clamp(64px, 9vw, 132px);
+    line-height: 1.2; direction: rtl;
+    text-shadow: 0 0 60px var(--glow, rgba(255,200,140,.55));
+  }
+  .name-en {
+    font-size: clamp(12px, 1.1vw, 16px); letter-spacing: .52em; text-transform: uppercase;
+    margin-top: 10px; color: var(--dim, rgba(255,255,255,.5)); padding-left: .52em;
+  }
+
+  .count {
+    margin-top: 44px;
+    font-size: clamp(30px, 3.4vw, 52px); font-weight: 100;
+    font-variant-numeric: tabular-nums; letter-spacing: .04em;
+  }
+  .count small {
+    display: block; margin-top: 12px;
+    font-size: 11px; letter-spacing: .3em; text-transform: uppercase; font-weight: 400;
+    color: var(--dim, rgba(255,255,255,.45));
+  }
+
+  .dhikr {
+    margin-top: 62px; min-height: 150px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    transition: opacity 1200ms ease;
+  }
+  .dhikr.out { opacity: 0; }
+  .dhikr { max-width: min(1050px, 82vw); }
+  .dhikr.quran .d-ar { font-family: var(--quran); }
+  .dhikr .d-ar { font-family: var(--arabic); font-size: clamp(26px, 3.0vw, 44px); line-height: 2.0; direction: rtl;
+                 color: var(--accent, #e8c26a); text-shadow: 0 0 40px var(--glow); }
+  .dhikr .d-tr { font-size: 13px; letter-spacing: .2em; text-transform: uppercase;
+                 color: var(--dim, rgba(255,255,255,.5)); }
+  .dhikr .d-en { font-size: clamp(16px, 1.45vw, 22px); font-weight: 300; line-height: 1.65;
+                 color: rgba(255,255,255,.88); max-width: 42em; }
+
+  .mark {
+    position: fixed; bottom: 0; width: 1px; height: 9px;
+    background: rgba(255,255,255,.4); pointer-events: none;
+  }
+  .bar {
+    position: fixed; left: 0; bottom: 0; height: 2px;
+    background: var(--accent, #e8c26a); opacity: .55;
+    box-shadow: 0 0 14px var(--glow);
+    width: 0%;
+  }
+  .hint {
+    position: fixed; bottom: 46px; left: 0; right: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    color: rgba(255,255,255,.26);
+    opacity: .7; transition: opacity .4s ease;
+  }
+  body.showcursor .hint { opacity: 1; }
+
+  /* the escape hatch and the button only exist once the screen unlocks */
+  .hint .row { display: flex; align-items: center; gap: 18px; }
+  #done, .hint .esc { display: none; }
+  body.unlocked #done, body.unlocked .hint .esc { display: inline-block; }
+
+  .hint button {
+    font-family: inherit; font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    padding: 10px 24px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--accent, rgba(255,255,255,.3));
+    background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.88);
+    animation: appear 900ms cubic-bezier(.16,.84,.32,1);
+  }
+  .hint button:hover { background: rgba(255,255,255,.16); }
+  @keyframes appear { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
+
+  #lockmsg { font-variant-numeric: tabular-nums; }
+  #lockmsg.nudge { animation: nudge 620ms ease; color: var(--accent, #e8c26a); }
+  @keyframes nudge {
+    0%,100% { transform: none; }
+    20% { transform: translateX(-4px); }
+    45% { transform: translateX(4px); }
+    70% { transform: translateX(-2px); }
+  }
+</style>
+</head>
+<body>
+  <img id="photo" alt="">
+  <canvas id="bg"></canvas>
+  <div class="veil"></div>
+
+  <div class="stage">
+    <div class="name-ar" id="ar">&nbsp;</div>
+    <div class="name-en" id="en"></div>
+    <div class="count" id="cd">&nbsp;<small id="cdlabel"></small></div>
+    <div class="dhikr" id="dhikr">
+      <div class="d-ar" id="dar"></div>
+      <div class="d-en" id="den"></div>
+      <div class="d-tr" id="dtr"></div>
+    </div>
+  </div>
+
+  <div class="bar" id="bar"></div>
+  <div class="mark" id="mark"></div>
+  <div class="hint">
+    <button id="done">I have prayed</button>
+    <div class="row">
+      <span id="lockmsg"></span>
+      <span class="esc">&middot;&nbsp;&nbsp;Esc to close</span>
+    </div>
+  </div>
+
+<script src="../shared/palettes.js"></script>
+<script src="../shared/verses.js"></script>
+<script src="../shared/scenes.js"></script>
+<script src="immersive.js"></script>
+</body>
+</html>
